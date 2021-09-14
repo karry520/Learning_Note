@@ -86,13 +86,88 @@ Harsh Chaudhari, Arpita Patra, Ajith Suresh (CCSW'19)
 
 <img src="/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/5.png" style="zoom:80%;" />
 
+Correctness：令$(m_x = x + \lambda_x),(m_y = y + \lambda_y)$，有$\gamma_{xy} = \lambda_x\lambda_y$证明$\Pi_{\mathrm{Mul}}^s(w_x,w_y,w_z)$是正确的。
+$$
+\begin{aligned}
+m_z &= m_xm_y - m_x\lambda_y - m_y\lambda_x + \lambda_z + \gamma_{xy} \\
+&=(m_x - \lambda_x)(m_y - \lambda_y) + \lambda_z \\
+&=xy + \lambda_z
+\end{aligned}
+$$
 **Output-reconstruction**
 
-重构比较简单，可以看到，每两方就可以还原输出$y = m_y - \lambda_{y,1} - \lambda_{y, 2}$，将重构协议命名为$\Pi_{\mathrm{Res}}^s$。 将前面三个阶段的协议整合起来，
+重构比较简单，可以看到，每两方就可以还原输出$y = m_y - \lambda_{y,1} - \lambda_{y, 2}$，将重构协议命名为$\Pi_{\mathrm{Res}}^s$。
+
+最后将前面三个阶段的协议整合起来，命令为$\Pi_{\mathrm{3pc}}^s$
 
 <img src="/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/6.png" style="zoom:67%;" />
 
+**Theorem 1： $\Pi_{\mathrm{3pc}}^s$**离线阶段需要一轮通信共M个ring elements，在线 Input-sharing 阶段需要通信一轮，共2I个ring elements；电路计算阶段，D轮通信共2M ring elements；output-reconstruction 阶段一轮共3O的通信量。
+
 #### 3PC with malicious security
+
+3PC恶意安全的方案跟半诚实的方案类似，分为三个阶段。
+
+**Input Sharing and Output Reconstruction Stages**：
+
+在协议$\Pi_{\mathrm{Sh}}^s$中$\lambda$-shares是consistent的，因为采样的时候非交互。但是，如果$P_0$拥有一个数$x$并且想创建一个inconsistent的$[\![\cdot]\!]$-sharing，那么它会发送不一致的$m_x$给$P_1,P_2$，我们只需要让$P_1,P_2$交换验证$H(m_x)$即可，如果不匹配则输出Abort。记Input Sharing为$\Pi_{\mathrm{Sh}}^m$。
+
+对于输出也是同样采用验证的方式，不匹配则输出Abort。记Reconstruction为$\Pi_{\mathrm{Rec}}^m([\![y]\!], P)$
+
+<img src="/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/7.png" style="zoom: 67%;" />
+
+**Circuit Evaluation Stage**：
+
+$\Pi_{\mathrm{Add}}$是本地计算所以恶意者存在的情况下是不受影响的，所以重点考虑$\Pi_{\mathrm{Mul}}^s$遭遇一个恶意者存在的情况。此时面临着两个问题：1）$P_0$作为恶意者可以分享不正确的$\gamma_{xy} \ne \lambda_x\lambda_y$；2）corrupt evaluator（$P_1\ or\ P_2$）可以发送不一致的$m_z$，所以讨论$\Pi_{\mathrm{Mul}}^s$的恶意安全性需要分为$\{P_0\}$和$\{P_1,P_2\}$两个集合来讨论，但我们的方法可以将两种情况统一起来解决。主要的思想是：检察三元组的$[\![\cdot]\!]$-sharing的product-relation。具体地，
+
+假设$P_1$的$m_z$被不正确的构造，需要检察它的正确性，可以借助$P_0$：$P_1$可以将$m_x,m_y$发送给$P_0$，因为$P_0$在离线阶段知道$\lambda_x,\lambda_y,\lambda_{z}$，所以它能计算出$m_z$并发送给$P_1$进行校验，但这样会泄露$m_x,m_y$明文给$P_0$。于是考虑加一个掩码$m_x^* = m_x + \delta_x, m_y^* = m_y + \delta_y$。$P_0$计算
+$$
+\begin{aligned}
+m_z^* &= -m_x^* \lambda_y - m_y^* \lambda_x + \lambda_z + 2\gamma_{xy}\\
+&=-(m_x + \delta_x)\lambda_y - (m_y + \delta_y)\lambda_x + \lambda_z + 2\gamma_{xy}\\
+&=(m_z - m_zm_y) - (\delta_x\lambda_y + \delta_y\lambda_x - \gamma_{xy})\\
+&=(m_z - m_xm_y) - \chi
+\end{aligned}
+$$
+这里把$m_z = m_xm_y - m_x\lambda_y - m_y\lambda_x + \lambda_z + \gamma_{xy}$代入即可得到这个结论。如果$P_0$知道$\chi$那么就可以计算$m_z^*$发送给$P_1,P_2$进行判断了。下面继续推导如果使$P_0$得到$\chi$。我们发现如果向$P_0$公开$\chi$，那么$P_0$根据自己拥有的$\lambda_x,\lambda_y,\gamma_{xy}$，以及$m_x + \delta_x,  m_y + \delta_y$可以得到$m_x,m_y$。所以我们要对$\chi$加一个掩码，即$\delta_x\lambda_y + \delta_y\lambda_x + \delta_z - \gamma_{xy}$，这里$\delta_z$是一个随机数。所以可以让$P_1,P_2$随机采样$\delta_x,\delta_y,\delta_z$然后做$\chi$的$[\cdot]$-sharing并发送给$P_0$，$P_0$收到后做个Add就可以得到$\chi$。这里引入了一个新的问题，如果$P_1,P_2$中的一个是恶意者，那么要保证发送正确的$\chi$的share。
+
+梳理一下，通过前面的描述明晰了当evaluator中的一个是恶意者的情况——检测不一致$m_z$的问题。并遗留下来两个问题：1）当$P_0$作恶时，$\gamma_{xy} \ne \lambda_x\lambda_y$；2）当$P_1$或者$P_2$作恶时，对$\chi$的不正确发送。这两个问题通过离线阶段的三元组来解决。一旦$P_0$接收到$\chi$后，各方本地计算$a = \delta_x - \lambda_x, b = \delta_y - \lambda_y$以及$ c = (\delta_z+\delta_x\delta_y) - \chi$的$[\![\cdot]\!]$-sharing。
+
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/8.png)
+
+观察到（$a,b,c$）构成一个乘法三元组
+$$
+\begin{aligned}
+ab & = (\delta_x - \lambda_x)(\delta_y - \lambda_y) =\delta_x\delta_y + \lambda_x\lambda_y - \delta_x \lambda_y - \delta_y\lambda_y \\
+&=(\delta_x\delta_y +\delta_z) - (\delta_x\lambda_y + \delta_y\lambda_x + \delta_z - \gamma_{xy})\\
+&=(\delta_z+\delta_x\delta_y) - \chi = c
+\end{aligned}
+$$
+这里$\gamma_{xy} = \lambda_x\lambda_y$。通过验证这个乘法元组（它的检验方法同《High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority》(EUROCRYPT'17)）可以解决提到的这两个遗留问题 ：
+
+（1）、如果$P_0$作恶，$\gamma_{xy} \ne \lambda_x\lambda_y$，不妨令$\gamma_{xy} = \lambda_x\lambda_y + \Delta$，那么
+$$
+\begin{aligned}
+c & = (\delta_x\delta_y +\delta_z) - (\delta_x\lambda_y + \delta_y\lambda_x + \delta_z - (\gamma_{xy} - \Delta))\\
+&=(\delta_x - \lambda_x)(\delta_y - \lambda_y) - \Delta = ab - \Delta \ne ab
+\end{aligned}
+$$
+（2）、考虑evaluators中的一个作恶，不妨假设是$P_1$作恶。在发送$\chi_1$给$P_0$的时候发送一个错误值$\chi_1 + \Delta$，那么$P_0$恢复的值为$\chi^{'}= \chi + \Delta$
+$$
+\begin{aligned}
+c & = (\delta_x\delta_y +\delta_z) - \chi^{'} = (\delta_x\delta_y +\delta_z) - (\chi+\Delta)\\
+&= (\delta_x\delta_y +\delta_z) - (\delta_x\lambda_y + \delta_y\lambda_x + \delta_z - \gamma_{xy}) - \Delta\\
+&= (\delta_x - \lambda_x)(\delta_y - \lambda_y) - \Delta = ab - \Delta \ne ab
+\end{aligned}
+$$
+（3）、加上前面讨论的一个问题：在线阶段$m_z$不一致，不妨假设$P_1$发送的$[m_z]_{P_1} + \Delta$给$P_2$。那么诚实方$P_2$计算得到的是$m_z + \Delta$。这种情况下，诚实方$P_0$在离线阶段正确计算了$\chi = \delta_x\lambda_y + \delta_y\lambda_x + \delta_z - \gamma_{xy}$。由于在线计算阶段$P_0$得到了诚实的$m_x + \delta_x,  m_y + \delta_y$以及有$\gamma_{xy} = \lambda_x\lambda_y$成立。如果它将这个结果发送给$P_1,P_2$，那么$P_2$接收到的$m_z^*$与$m_z + \Delta - m_xm_y +\delta_z$不同，所以会输出Abort。
+
+下面是完整的恶意安全下的乘法计算协议
+
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/9.png)
 
 #### Achieving Fairness
 
+我们通过一个公平的Reconstruct协议将$\Pi_{\mathrm{3pc}}^m$的安全性从可中止提升到Fairness。为了fairly reconstruct $[\![y]\!]$，可以使用commitment。在离线阶段，$\{P_0, P_1\}$承诺它们的公共share $\lambda_{y,1}$ 发送给$P_2$；$\{P_0,P_2\}$同样承诺公共的share $\lambda_{y,2}$ 发送给$P_1$；在线阶段$\{P_1,P_2\}$承诺它们的公共值$m_y$发送给$P_0$。由诚实多数的假设下，$(P_0, P_1), (P_0, P_2), (P_1, P_2)$中至少有1对是诚实的。当承诺不匹配的时候，向其它方广播Abort。如果没有Abort的信号出现，则按照Reconstruct的规则打开$y$。但是这里会有一个问题，我们缺乏一个可信任的广播信道（有可能恶意方$P_0$向$P_1$发送Abort，向$P_2$发送contine的信号，最终结果就会出现不一致）。为解决这个问题，可以在离线阶段$(P_0, P_1), (P_0, P_2)$分别将相应的随机数$r_1,r_2$的承诺发送给对方，在线阶段收到Abort的时候，会附带一个信息用来证明另一方收到的也是Abort。
+
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/10.png)
