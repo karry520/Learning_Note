@@ -168,6 +168,19 @@ $$
 
 #### Achieving Fairness
 
-我们通过一个公平的Reconstruct协议将$\Pi_{\mathrm{3pc}}^m$的安全性从可中止提升到Fairness。为了fairly reconstruct $[\![y]\!]$，可以使用commitment。在离线阶段，$\{P_0, P_1\}$承诺它们的公共share $\lambda_{y,1}$ 发送给$P_2$；$\{P_0,P_2\}$同样承诺公共的share $\lambda_{y,2}$ 发送给$P_1$；在线阶段$\{P_1,P_2\}$承诺它们的公共值$m_y$发送给$P_0$。由诚实多数的假设下，$(P_0, P_1), (P_0, P_2), (P_1, P_2)$中至少有1对是诚实的。当承诺不匹配的时候，向其它方广播Abort。如果没有Abort的信号出现，则按照Reconstruct的规则打开$y$。但是这里会有一个问题，我们缺乏一个可信任的广播信道（有可能恶意方$P_0$向$P_1$发送Abort，向$P_2$发送contine的信号，最终结果就会出现不一致）。为解决这个问题，可以在离线阶段$(P_0, P_1), (P_0, P_2)$分别将相应的随机数$r_1,r_2$的承诺发送给对方，在线阶段收到Abort的时候，会附带一个信息用来证明另一方收到的也是Abort。
+我们通过一个公平的Reconstruct协议将$\Pi_{\mathrm{3pc}}^m$的安全性从可中止提升到Fairness。为了fairly reconstruct $[\![y]\!]$，可以使用commitment。在离线阶段，$\{P_0, P_1\}$承诺它们的公共share $\lambda_{y,1}$ 发送给$P_2$；$\{P_0,P_2\}$同样承诺公共的share $\lambda_{y,2}$ 发送给$P_1$；在线阶段$\{P_1,P_2\}$承诺它们的公共值$m_y$发送给$P_0$。由诚实多数的假设下，$(P_0, P_1), (P_0, P_2), (P_1, P_2)$中至少有1对是诚实的。当承诺不匹配的时候，向其它方广播Abort。如果没有Abort的信号出现，则按照Reconstruct的规则打开$y$。但是这里会有一个问题，我们缺乏一个可信任的广播信道（有可能恶意方$P_0$向$P_1$发送Abort，向$P_2$发送contine的信号，最终结果就会出现不一致）。为解决这个问题，可以在离线阶段$(P_0, P_1), (P_0, P_2)$分别将相应的随机数$r_1,r_2$的承诺发送给对方，在线阶段$P_0$产生Abort信号的时候，会附带一个信息给$P_i$，这个信息被$P_i$用来证明$P_{3-i}$收到的也是Abort。
 
 ![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/10.png)
+
+### PRIVACY PRESERVING MACHINE LEARNING
+
+使用前面的三方协议完成隐私保护ML预测任务（外包MPC的方式，三台不合谋的服务器）
+
+#### Protocols for ML
+
+（1）**Dot Product**：给定$d$维向量$\vec{p},\vec{q}$，$\Pi_{\mathrm{dp}}$的目标是计算$\vec{p}\odot \vec{q}$的$[\![\cdot]\!]$-sharing。如果直接使用$\Pi_{\mathrm{Mul}}$，那么它的通信复杂度与$d$线性相关。半诚实下，可以使用如下的方式使$\Pi_{\mathrm{dp}}$的通信复杂度与$d$无关：离线阶段，$P_0$直接以$[\cdot]$-sharing的方式分享$\gamma_{pq} = \vec{\lambda_p}\odot \vec{\lambda_q}$，而不是对每一维分享$\lambda_{p_i}\lambda_{q_i}$。在线阶段，也不是分别重构每一维$m_{p_iq_i}$，而是$m_{u}$，其中$u = \vec{p}\odot \vec{q}$。同样的思路在恶意安全下的协议通信也可以被优化。
+
+<img src="/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/11.png" style="zoom: 67%;" />
+
+（2）**Secure Comparison**：两个算术值的比较一直是实现高效隐私保护机器学习的重要挑战。给定算术分享值$[\![u]\!], [\![v]\!]$，参与方想要计算$u < v$的值，通常的办法是计算$a = u - v$，然后判断$a$的最高符号位$\mathrm{msb}(a)$，SecureML和ABY$^3$采用的是GC或者parallel prefix adders。我们利用一个观察：$\mathrm{sign}(a\cdot r) = \mathrm{sign}(a) \oplus \mathrm{sign}(r)$，
+
