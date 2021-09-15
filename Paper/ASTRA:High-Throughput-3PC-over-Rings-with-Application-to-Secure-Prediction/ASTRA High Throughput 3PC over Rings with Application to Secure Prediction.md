@@ -182,5 +182,41 @@ $$
 
 <img src="/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/11.png" style="zoom: 67%;" />
 
-（2）**Secure Comparison**：两个算术值的比较一直是实现高效隐私保护机器学习的重要挑战。给定算术分享值$[\![u]\!], [\![v]\!]$，参与方想要计算$u < v$的值，通常的办法是计算$a = u - v$，然后判断$a$的最高符号位$\mathrm{msb}(a)$，SecureML和ABY$^3$采用的是GC或者parallel prefix adders。我们利用一个观察：$\mathrm{sign}(a\cdot r) = \mathrm{sign}(a) \oplus \mathrm{sign}(r)$，
+（2）**Secure Comparison**：两个算术值的比较一直是实现高效隐私保护机器学习的重要挑战。给定算术分享值$[\![u]\!], [\![v]\!]$，参与方想要计算$u < v$的值，通常的办法是计算$a = u - v$，然后判断$a$的最高符号位$\mathrm{msb}(a)$，SecureML和ABY$^3$采用的是GC或者parallel prefix adders。我们利用一个观察：$\mathrm{sign}(a\cdot r) = \mathrm{sign}(a) \oplus \mathrm{sign}(r)$，则可以把对$a$的判断转化为对$ra$与$r$的符号位的判断。
 
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/12.png)
+
+#### ML Prediction Functions and Abstractions
+
+- Linear Regression：模型M有$d$-维参数$\vec{w}$和一个偏置$b$。客户端C进行一次查询，输入为$d$-维的$\vec{z}$，计算流程为 
+  $$
+  f_{\mathrm{linr}}((\vec{w}, b), \vec{z}) = \vec{w}\odot \vec{z} + b
+  $$
+  
+
+- SVM Regression：模型M有$\{\alpha_j, y_j\}_{j=1}^k$, $d$-维支持向量$\{\vec{x}_j\}_{j=1}^k$和一个偏置$b$。客户端C进行一次查询，输入为$d$-维的$\vec{z}$，计算流程为 
+  $$
+  f_{\mathrm{svmr}}((\{\alpha_j, y_j, \vec{x}_j\}_{j=1}^k, b), \vec{z}) = \sum_{j=1}^k\alpha_jy_j(\vec{x}\odot \vec{z}) + b
+  $$
+  
+
+- Logistic Regression： M和C的输入同Linear Regression，不同的是M需要提供一个$t\in [0,1]$，C得到 
+  $$
+  f_{\mathrm{logr}}((\vec{w}, b, t), \vec{z}) = \mathrm{sign}((\vec{w}\odot \vec{z} + b) - \ln (\frac{t}{1-t}))
+  $$
+  
+
+- SVM Classification：同SVM Regression，但是C的输出有些改变
+  $$
+  f_{\mathrm{svmc}}((\{\alpha_j, y_j, \vec{x}_j\}_{j=1}^k, b), \vec{z}) = \mathrm{sign}(\sum_{j=1}^k\alpha_jy_j(\vec{x}\odot \vec{z}) + b)
+  $$
+
+### IMPLEMENTATION AND BENCHMARKING
+
+本文在从多个维度对算法协议的效率进行了比较：延迟（计算各个参与方或者服务器在LAN和WAN下的最大运行时间，以及在LAN和WAN下的在线计算阶段的throughput）。LAN下3PC的throughput通过每秒计算的AES次数来度量，WAN下throughput通过每少计算的AND门数量来比较。（只放少量的实验截图）
+
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/14.png)
+
+再看各个输入、输出阶段的实验比较
+
+![](/home/karrylee/Learning_Note/Paper/ASTRA:High-Throughput-3PC-over-Rings-with-Application-to-Secure-Prediction/pic/15.png)
